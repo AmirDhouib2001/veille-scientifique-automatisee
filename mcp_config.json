@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "arxiv-search": {
+      "command": "python",
+      "args": [
+        "-m",
+        "mcp_servers.arxiv_server"
+      ],
+      "description": "Serveur MCP pour la recherche d'articles scientifiques sur arXiv",
+      "env": {}
+    }
+  }
+}
+

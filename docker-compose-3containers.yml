@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  # ===== BASE DE DONNÉES =====
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: veille_postgres
+    environment:
+      POSTGRES_DB: veille_scientifique
+      POSTGRES_USER: veille_user
+      POSTGRES_PASSWORD: veille_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U veille_user -d veille_scientifique"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - veille_network
+
+  # ===== BACKEND API =====
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: veille_backend
+    ports:
+      - "8000:8000"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: veille_scientifique
+      DB_USER: veille_user
+      DB_PASSWORD: veille_password
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_API_BASE: ${OPENAI_API_BASE:-https://openrouter.ai/api/v1}
+      OPENAI_MODEL: ${OPENAI_MODEL:-openrouter/x-ai/grok-4.1-fast:free}
+      OPENROUTER_API_KEY: ${OPENAI_API_KEY}
+      LITELLM_LOG: DEBUG
+      CREWAI_TELEMETRY_OPT_OUT: "true"
+      USE_MCP_ARXIV: ${USE_MCP_ARXIV:-true}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./reports:/app/reports
+    networks:
+      - veille_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ===== FRONTEND STREAMLIT =====
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: veille_frontend
+    ports:
+      - "8501:8501"
+    environment:
+      BACKEND_API_URL: http://backend:8000
+      OPENAI_API_KEY: ${OPENAI_API_KEY}  # Pour validation dans l'UI
+    depends_on:
+      - backend
+    volumes:
+      - ./reports:/app/reports
+    networks:
+      - veille_network
+
+volumes:
+  postgres_data:
+
+networks:
+  veille_network:
+    driver: bridge
+
