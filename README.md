@@ -136,8 +136,3 @@ projet/
 - Temps de traitement : 1-2 minutes selon le nombre d'articles
 - Les rapports PDF sont sauvegardés dans `/reports`
 - Configuration PostgreSQL conservée (pas besoin de la modifier)
-
-## 📄 Licence
-
-MIT
-
